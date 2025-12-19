@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
 
 export default function MasterPengguna() {
+    const [sessionData, setSessionData] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState<any>(null);
@@ -54,7 +55,7 @@ export default function MasterPengguna() {
             },
         });
     };
-    
+
     const handleAdd = () => {
         setShowPopup(true);
         setIsEditing(false);
@@ -67,22 +68,23 @@ export default function MasterPengguna() {
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
 
-        const userData = {
+        const requestData = {
+            id: editData?.id ? editData.id : 0,
             roleName: formData.get("roleName"),
             departmentId: selectedDepartment?.value
                 ? Number(selectedDepartment.value)
                 : null,
-            createdBy: 'tes'
+            submittedBy: sessionData.userId
         };
 
         try {
             if (isEditing && editData) {
-                await axios.put(`${ROLES_API_URL}${editData.id}`, userData, {
+                await axios.put(ROLES_API_URL, requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil diperbarui");
             } else {
-                await axios.post(ROLES_API_URL, userData, {
+                await axios.post(ROLES_API_URL, requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil ditambahkan");
@@ -123,9 +125,14 @@ export default function MasterPengguna() {
             confirmButtonText: "Hapus",
             cancelButtonText: "Batal",
         }).then(async (result) => {
+            const requestData = {
+                id: data.id,
+                submittedBy: sessionData.userId
+            };
+
             if (result.isConfirmed) {
                 try {
-                    await axios.patch(`${ROLES_API_URL}${data.id}`, { status: "N" });
+                    await axios.patch(ROLES_API_URL, requestData);
                     showToast("success", "Data telah dihapus");
                     await getAllRoles();
                 } catch (error) {
@@ -137,10 +144,15 @@ export default function MasterPengguna() {
     };
 
     useEffect(() => {
+        const storedSessionData = localStorage.getItem("sessionData");
+        if (storedSessionData) {
+            setSessionData(JSON.parse(storedSessionData));
+        }
+
         getAllRoles();
         getAllDepartment();
     }, []);
-    
+
     const departmentOptions = departments.map((c) => ({
         value: c.id,
         label: c.departmentName,

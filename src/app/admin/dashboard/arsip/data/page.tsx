@@ -11,6 +11,7 @@ import { UploadDropzone } from "@/components/layout/UploadDropzone";
 import PopupArchiveDetail from "@/components/main/popup/PopupArchiveDetail";
 
 export default function ArsipData() {
+    const [sessionData, setSessionData] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -24,6 +25,8 @@ export default function ArsipData() {
     const [archiveCharacteristics, setArchiveCharacteristics] = useState<any[]>([]);
     const [archiveTypes, setArchiveTypes] = useState<any[]>([]);
     const [listArchiveAttachment, setListArchiveAttachment] = useState<any[]>([]);
+    const [roleAccessOptions, setRoleAccessOptions] = useState<any[]>([]);
+    const [listRoleAccess, setListRoleAccess] = useState<RoleAccessState[]>([]);
 
     const [selectedArchiveType, setSelectedArchiveType] = useState<any>(null);
     const [selectedArchiveCharacteristic, setSelectedArchiveCharacteristic] = useState<any>(null);
@@ -36,17 +39,54 @@ export default function ArsipData() {
     const ARCHIVE_URL = "http://192.168.50.52:8080/api/archives/";
     const ARCHIVE_CHARACTERISTIC_URL = "http://192.168.50.52:8080/api/master/archiveCharacteristics/";
     const ARCHIVE_TYPE_URL = "http://192.168.50.52:8080/api/master/archiveTypes/";
+    const ROLES_URL = "http://192.168.50.52:8080/api/master/roles";
+
+    interface RoleAccessState {
+        id: number;
+        roleId: number;
+        roleName: string;
+        isNew: boolean;
+        isDelete: boolean;
+    }
 
     /* CONSTRUCTOR FUNCTIONS */
     useEffect(() => {
-        getAllArchives();
+        const storedSessionData = localStorage.getItem("sessionData");
+        const parsedSessionData = JSON.parse(storedSessionData)
+        if (storedSessionData) {
+            setSessionData(JSON.parse(storedSessionData));
+        }
+
+        if (parsedSessionData.roleId == 1) {
+            getAllArchives();
+        } else {
+            getAllArchivesByData(parsedSessionData.roleId, parsedSessionData.departmentId);
+        }
+
         getAllArchiveCharacteristics();
         getAllArchiveTypes();
+        getRoleByDepartmentId(parsedSessionData.departmentId);
     }, []);
 
     const getAllArchives = async () => {
         try {
             const response = await axios.get(ARCHIVE_URL);
+            setArchives(response.data.data);
+        } catch (error) {
+            console.error("Error fetching archives:", error);
+        }
+    };
+
+    const getAllArchivesByData = async (roleId: number, departmentId: number) => {
+        const requestData = {
+            roleId: roleId,
+            departmentId: departmentId
+        }
+
+        try {
+            const response = await axios.post(`${ARCHIVE_URL}getByData`, requestData, {
+                headers: { "Content-Type": "application/json" },
+            });
             setArchives(response.data.data);
         } catch (error) {
             console.error("Error fetching archives:", error);
@@ -78,6 +118,20 @@ export default function ArsipData() {
         } catch (error) {
             console.error("Error fetching archive:", error);
             return null;
+        }
+    };
+
+    const getRoleByDepartmentId = async (departmentId: number) => {
+        try {
+            const response = await axios.get(`${ROLES_URL}/findByQuery/department/${departmentId}`);
+            setRoleAccessOptions(
+                response.data.map((r) => ({
+                    value: r.id,
+                    label: r.roleName,
+                }))
+            );
+        } catch (err) {
+            console.error("Error fetching hak akses", err);
         }
     };
 
@@ -148,8 +202,10 @@ export default function ArsipData() {
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
 
-        const submitData = {
+        const requestData = {
+            id: editData?.id ? editData.id : 0,
             archiveName: formData.get("archiveName"),
+            archiveNumber: formData.get("archiveNumber"),
             archiveDate: archiveDate ? formatDateForApi(archiveDate) : null,
             archiveCharacteristicId: selectedArchiveCharacteristic?.value
                 ? Number(selectedArchiveCharacteristic.value)
@@ -157,23 +213,39 @@ export default function ArsipData() {
             archiveTypeId: selectedArchiveType?.value
                 ? Number(selectedArchiveType.value)
                 : null,
+            departmentId: sessionData.departmentId,
             listArchiveAttachments: listArchiveAttachment,
+            roleAccess: listRoleAccess.map(r => ({
+                id: r.id,
+                archiveId: editData?.id || 0,
+                roleId: r.roleId,
+                departmentId: sessionData.departmentId,
+                isNew: r.isNew,
+                isDelete: r.isDelete,
+                submittedBy: sessionData.userId
+            })),
+            submittedBy: sessionData.userId
         };
 
         try {
             if (isEditing && editData) {
-                await axios.put(`${ARCHIVE_URL}${editData.id}`, submitData, {
+                await axios.put(ARCHIVE_URL, requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil diperbarui");
             } else {
-                await axios.post(ARCHIVE_URL, submitData, {
+                await axios.post(ARCHIVE_URL, requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil ditambahkan");
             }
 
-            await getAllArchives();
+            if (sessionData.roleId == 1) {
+                await getAllArchives();
+            } else {
+                await getAllArchivesByData(sessionData.roleId, sessionData.departmentId);
+            }
+
             setShowPopup(false);
             setIsEditing(false);
             setEditData(null);
@@ -215,6 +287,16 @@ export default function ArsipData() {
             }))
         );
 
+        setListRoleAccess(
+            archive.archiveRoleAccess.map((r) => ({
+                id: r.id,
+                roleId: r.roleId,
+                roleName: r.role.roleName,
+                isNew: false,
+                isDelete: false,
+            }))
+        );
+
         setShowPopup(true);
     };
 
@@ -229,11 +311,21 @@ export default function ArsipData() {
             confirmButtonText: "Hapus",
             cancelButtonText: "Batal",
         }).then(async (result) => {
+            const requestData = {
+                id: data.id,
+                submittedBy: sessionData.userId
+            };
+
             if (result.isConfirmed) {
                 try {
-                    await axios.patch(`${ARCHIVE_URL}${data.id}`, { status: "N" });
+                    await axios.patch(ARCHIVE_URL, requestData);
                     showToast("success", "Data telah dihapus");
-                    await getAllArchives();
+
+                    if (sessionData.roleId == 1) {
+                        await getAllArchives();
+                    } else {
+                        await getAllArchivesByData(sessionData.roleId, sessionData.departmentId);
+                    }
                 } catch (error) {
                     console.error("Error deleting archive:", error);
                     showToast("error", "Tidak dapat menghapus data");
@@ -242,12 +334,53 @@ export default function ArsipData() {
         });
     };
 
+    const handleView = (data) => {
+        setSelectedArchive({
+            archiveId: data.id,
+            archiveNumber: data.archiveNumber,
+            archiveName: data.archiveName,
+            archiveDate: dateFormat(data.archiveDate),
+            archiveCharacteristicName: data.archiveCharacteristic.archiveCharacteristicName,
+            archiveTypeName: data.archiveType.archiveTypeName,
+            listRoleAccess: data.archiveRoleAccess
+        });
+
+        setModalOpen(true);
+    };
+
     const filteredData = archives.filter((archive) =>
-        [archive.archiveName]
+        [
+            archive.archiveDate,
+            archive.archiveNumber,
+            archive.archiveName,
+            archive.archiveCharacteristic.archiveCharacteristicName,
+            archive.archiveType.archiveTypeName,
+        ]
             .join(" ")
             .toLowerCase()
             .includes(searchQuery.toLowerCase())
     );
+
+    const handleCancel = () => {
+        setShowPopup(false);
+        setIsEditing(false);
+        setEditData(null);
+        setListArchiveAttachment([]);
+        setSelectedArchiveCharacteristic(null);
+        setSelectedArchiveType(null);
+        setListRoleAccess([]);
+    };
+
+    const handleAdd = () => {
+        setShowPopup(true);
+        setIsEditing(false);
+        setEditData(null);
+        setArchiveDate(null);
+        setSelectedArchiveType(null);
+        setListArchiveAttachment([]);
+        setSelectedArchiveCharacteristic(null);
+        setListRoleAccess([]);
+    }
 
     const totalPages = Math.ceil(filteredData.length / recordsPerPage);
     const startIndex = (currentPage - 1) * recordsPerPage;
@@ -263,49 +396,16 @@ export default function ArsipData() {
         label: c.archiveTypeName,
     }));
 
+    const selectedRoleAccessOptions = listRoleAccess
+        .filter(r => !r.isDelete)
+        .map(r => ({
+            value: r.roleId,
+            label: r.roleName,
+        }));
+
     const changePage = (page: number) => {
         if (page >= 1 && page <= totalPages) setCurrentPage(page);
     };
-
-    const handleView = (data) => {
-        setSelectedArchive({
-            archiveId: data.id,
-            archiveName: data.archiveName,
-            archiveDate: dateFormat(data.archiveDate),
-            archiveCharacteristicName: data.archiveCharacteristic.archiveCharacteristicName,
-            archiveTypeName: data.archiveType.archiveTypeName,
-        });
-        setModalOpen(true);
-    };
-
-    const formatImageSrc = (base64: string) => {
-        if (!base64) return "";
-
-        if (base64.startsWith("data:image") || base64.startsWith("data:application")) {
-            return base64;
-        }
-
-        return `data:image/jpeg;base64,${base64}`;
-    };
-
-    const handleCancel = () => {
-        setShowPopup(false);
-        setIsEditing(false);
-        setEditData(null);
-        setListArchiveAttachment([]);
-        setSelectedArchiveCharacteristic(null);
-        setSelectedArchiveType(null);
-    };
-
-    const handleAdd = () => {
-        setShowPopup(true);
-        setIsEditing(false);
-        setEditData(null);
-        setArchiveDate(null);
-        setSelectedArchiveType(null);
-        setListArchiveAttachment([]);
-        setSelectedArchiveCharacteristic(null);
-    }
 
     const compressImage = (file: File, quality = 0.7): Promise<string> => {
         return new Promise((resolve) => {
@@ -359,7 +459,6 @@ export default function ArsipData() {
         return `${year}-${month}-${day}`;
     };
 
-
     return (
         <div className="flex flex-col h-full space-y-3">
             {/* 🔍 Search and Add */}
@@ -387,6 +486,7 @@ export default function ArsipData() {
                         <tr>
                             <th className="px-3 py-2 text-left">No.</th>
                             <th className="px-3 py-2 text-left">Tanggal</th>
+                            <th className="px-3 py-2 text-left">Nomor</th>
                             <th className="px-3 py-2 text-left">Judul</th>
                             <th className="px-3 py-2 text-left">Sifat</th>
                             <th className="px-3 py-2 text-left">Jenis</th>
@@ -407,6 +507,7 @@ export default function ArsipData() {
                                     >
                                         <td className="px-3 py-2">{idx + 1}</td>
                                         <td className="px-3 py-2">{dateFormat(data.archiveDate)}</td>
+                                        <td className="px-3 py-2">{data.archiveNumber}</td>
                                         <td className="px-3 py-2">{data.archiveName}</td>
                                         <td className="px-3 py-2">{data.archiveCharacteristic.archiveCharacteristicName}</td>
                                         <td className="px-3 py-2">{data.archiveType.archiveTypeName}</td>
@@ -434,7 +535,7 @@ export default function ArsipData() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-6 text-gray-500 italic bg-gray-50">
+                                    <td colSpan={7} className="text-center py-6 text-gray-500 italic bg-gray-50">
                                         Tidak ada data
                                     </td>
                                 </tr>
@@ -525,7 +626,27 @@ export default function ArsipData() {
                             </h2>
 
                             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                                {/* ================= LEFT SIDE (DATA ENTRY) ================= */}
+
+                                <div className="md:col-span-2 grid grid-cols-2 gap-4 w-full">
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-black">Tanggal Arsip</label>
+                                        <ArchiveDatePicker
+                                            dateSelected={editData?.archiveDate}   // ISO string "2025-12-11"
+                                            onChangeDate={(iso: Date) => setArchiveDate(iso)}  // ISO "YYYY-MM-DD"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="md:col-span-2 grid grid-cols-2 gap-4 w-full">
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-black">Nomor</label>
+                                        <input
+                                            name="archiveNumber"
+                                            defaultValue={editData?.archiveNumber || ""}
+                                            className="w-full border px-3 py-2 rounded-lg text-black"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="md:col-span-2 grid grid-cols-2 gap-4 w-full">
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-black">Judul</label>
@@ -535,17 +656,6 @@ export default function ArsipData() {
                                             required
                                             className="w-full border px-3 py-2 rounded-lg text-black"
                                         />
-                                    </div>
-                                </div>
-
-                                <div className="md:col-span-2 grid grid-cols-2 gap-4 w-full">
-                                    <div className="col-span-2">
-                                        <label className="block text-sm font-medium text-black">Tanggal Arsip</label>
-                                        <ArchiveDatePicker
-                                            dateSelected={editData?.archiveDate}   // ISO string "2025-12-11"
-                                            onChangeDate={(iso: Date) => setArchiveDate(iso)}  // ISO "YYYY-MM-DD"
-                                        />
-
                                     </div>
                                 </div>
 
@@ -573,7 +683,94 @@ export default function ArsipData() {
                                         />
                                     </div>
                                 </div>
+                                <div className="md:col-span-2">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-sm font-medium text-black">
+                                            Hak Akses
+                                        </label>
 
+                                        <div className="flex gap-2 text-xs">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setListRoleAccess(prev => {
+                                                        const existing = [...prev];
+
+                                                        roleAccessOptions.forEach(opt => {
+                                                            const found = existing.find(r => r.roleId === opt.value);
+                                                            if (!found) {
+                                                                existing.push({
+                                                                    id: 0,
+                                                                    roleId: opt.value,
+                                                                    roleName: opt.label,
+                                                                    isNew: true,
+                                                                    isDelete: false,
+                                                                });
+                                                            } else {
+                                                                found.isDelete = false;
+                                                            }
+                                                        });
+
+                                                        return [...existing];
+                                                    });
+                                                }}
+                                                className="px-2 py-1 rounded-md border border-gray-300 hover:bg-gray-100 text-black"
+                                            >
+                                                Pilih Semua
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <Select
+                                        options={roleAccessOptions}
+                                        value={selectedRoleAccessOptions}
+                                        isMulti
+                                        isSearchable
+                                        placeholder="--- PILIH ---"
+                                        className="text-black"
+                                        onChange={(selected) => {
+                                            const selectedIds = (selected || []).map(s => s.value);
+
+                                            setListRoleAccess(prev => {
+                                                let updated = [...prev];
+
+                                                // 1️⃣ Handle removals
+                                                updated = updated
+                                                    .map(r => {
+                                                        // Existing role removed → soft delete
+                                                        if (!selectedIds.includes(r.roleId) && !r.isNew) {
+                                                            return { ...r, isDelete: true };
+                                                        }
+                                                        return r;
+                                                    })
+                                                    // New role removed → hard delete
+                                                    .filter(r => selectedIds.includes(r.roleId) || !r.isNew);
+
+                                                // 2️⃣ Handle additions
+                                                selectedIds.forEach(roleId => {
+                                                    const exists = updated.find(
+                                                        r => r.roleId === roleId && !r.isDelete
+                                                    );
+
+                                                    if (!exists) {
+                                                        const opt = roleAccessOptions.find(o => o.value === roleId);
+                                                        if (!opt) return;
+
+                                                        updated.push({
+                                                            id: 0,
+                                                            roleId,
+                                                            roleName: opt.label,
+                                                            isNew: true,
+                                                            isDelete: false,
+                                                        });
+                                                    }
+                                                });
+
+                                                return updated;
+                                            });
+                                        }}
+                                    />
+                                </div>
                                 <div className="md:col-span-2 grid grid-cols-2 gap-4 w-full">
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-black">Dokumentasi Arsip</label>
@@ -657,8 +854,6 @@ export default function ArsipData() {
                                             })}
                                     </div>
                                 </div>
-
-
                                 <div className="md:col-span-2 flex justify-end gap-3 pt-6 border-t">
                                     <button
                                         type="button"

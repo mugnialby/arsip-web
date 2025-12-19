@@ -20,41 +20,40 @@ export default function LoginPage() {
         document.getElementById("userid")?.focus();
     }, []);
 
-    const handleLogin = async () => {
+    const handleLogin = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+    
         if (!userId || !password) {
-            setErrorMsg("Please fill all fields.");
+            setErrorMsg("Mohon isi data terlebih dahulu.");
             triggerShake();
             return;
         }
-        
+    
         setLoading(true);
-
+    
         const loginRequest = {
             userId: userId.trim().toUpperCase(),
-            password: password.trim().toUpperCase()
+            password: password.trim()
         };
-
+    
         try {
-            // const response = await axios.post(API_URL, loginRequest, {
-            //     headers: { "Content-Type": "application/json" },
-            // });
-
-            // if (!response || response.status != 200) throw new Error("Login gagal");
-
-            // // Save token (for authenticated routes)
-            // // localStorage.setItem("adminToken", data.token);
-            // localStorage.setItem("user", response.data.fullName);
-
-            setLoading(false);
+            const response = await axios.post(API_URL, loginRequest, {
+                headers: { "Content-Type": "application/json" },
+            });
+    
+            if (response.status !== 200) throw new Error("Login gagal");
+    
+            localStorage.setItem("sessionData", JSON.stringify(response.data));
+    
             setErrorMsg("");
-            
-            // Redirect to dashboard
             router.push("/admin/dashboard");
         } catch (err: any) {
-            setLoading(false);
             setErrorMsg(err.message || "Login gagal");
+        } finally {
+            setLoading(false);
         }
     };
+    
 
     const triggerShake = () => {
         setShake(true);
@@ -78,9 +77,7 @@ export default function LoginPage() {
                     Arsip Kejari Kota Bogor
                 </h1>
 
-                <div className="space-y-4">
-
-                    {/* USER ID */}
+                <form className="space-y-4" onSubmit={handleLogin}>
                     <motion.div
                         animate={shake ? { x: [-10, 10, -5, 5, 0] } : {}}
                         transition={{ duration: 0.4 }}
@@ -94,10 +91,14 @@ export default function LoginPage() {
                             onChange={(e) => setUserId(e.target.value)}
                             className="w-full bg-white/5 text-gray-700 placeholder-gray-700 border border-gray-700 rounded-xl px-10 py-3 focus:outline-none"
                             placeholder="User ID"
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    document.querySelector<HTMLInputElement>('input[type="password"]')?.focus();
+                                }
+                            }}                            
                         />
                     </motion.div>
 
-                    {/* PASSWORD */}
                     <motion.div
                         animate={shake ? { x: [-10, 10, -5, 5, 0] } : {}}
                         transition={{ duration: 0.4 }}
@@ -110,10 +111,10 @@ export default function LoginPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full bg-white/5 text-gray-700 placeholder-gray-700 border border-gray-700 rounded-xl px-10 py-3 focus:outline-none"
                             placeholder="Password"
+                            
                         />
                     </motion.div>
 
-                    {/* ERROR MESSAGE */}
                     {errorMsg && (
                         <motion.p
                             className="text-red-400 text-sm text-center"
@@ -126,15 +127,14 @@ export default function LoginPage() {
 
                     {/* LOGIN BUTTON */}
                     <motion.button
-                        onClick={handleLogin}
+                        type="submit"
                         disabled={loading}
                         whileTap={{ scale: 0.97 }}
                         className="w-full py-3 mt-2 rounded-xl bg-green-500 border border-white/30 text-white font-semibold backdrop-blur-sm hover:bg-green-700 transition"
                     >
                         {loading ? "Signing in..." : "Login"}
                     </motion.button>
-
-                </div>
+                </form>
             </motion.div>
         </div>
     );

@@ -6,19 +6,19 @@ import { Menu, LogOut } from "lucide-react";
 
 export default function DashboardNavbarComponent({ showSidebar, setShowSidebar }) {
     const router = useRouter();
-    const [user, setUser] = useState("");
+    const [sessionData, setSessionData] = useState(null);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            setUser(storedUser);
+        const storedSessionData = localStorage.getItem("sessionData");
+        if (storedSessionData) {
+            setSessionData(JSON.parse(storedSessionData));
         }
     }, []);
-    
+
     // Check already login session
     const removeSessionData = () => {
         localStorage.clear()
-        router.push("/main/login")
+        router.push("/")
     };
 
     return (
@@ -37,8 +37,8 @@ export default function DashboardNavbarComponent({ showSidebar, setShowSidebar }
                     </h1>
                 </div>
                 <div className="flex items-center gap-6">
-                    <span className="uppercase font-semibold text-gray-700">
-                        Hi, {user || "ADMIN"}
+                    <span className="font-semibold text-gray-700">
+                        Hi, {sessionData?.fullName || "ADMIN"}
                     </span>
                     <button
                         onClick={() => removeSessionData()}

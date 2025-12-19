@@ -6,10 +6,15 @@ import { motion, AnimatePresence } from "framer-motion";
 interface PopupArchiveDetail {
     archiveHdr: {
         archiveId: number;
+        archiveNumber: string;
         archiveName: string;
         archiveDate: string;
         archiveCharacteristicName: string;
         archiveTypeName: string;
+        archiveRoleAccess: {
+            id: number;
+            roleName: string;
+        }[];
     };
     isOpen: boolean;
     onClose: () => void;
@@ -71,7 +76,7 @@ export default function PopupArchiveDetail({
                     >
                         {/* Top Bar */}
                         <div className="sticky top-0 bg-white z-50 border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm">
-                            <h2 className="text-xl font-semibold">Detil Arsip</h2>
+                            <h2 className="text-xl font-semibold text-black">Detil Arsip</h2>
                             <button
                                 onClick={onClose}
                                 className="text-gray-600 hover:text-gray-800 text-2xl"
@@ -86,10 +91,13 @@ export default function PopupArchiveDetail({
                             {/* Header Card */}
                             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                                 <div className="grid grid-cols-2 gap-y-2 text-sm">
-                                    <div className="font-medium text-gray-600">Nama Arsip:</div>
+                                    <div className="font-medium text-gray-600">Nomor:</div>
+                                    <div className="text-gray-800">{archiveHdr.archiveNumber}</div>
+
+                                    <div className="font-medium text-gray-600">Judul:</div>
                                     <div className="text-gray-800">{archiveHdr.archiveName}</div>
 
-                                    <div className="font-medium text-gray-600">Tanggal Arsip:</div>
+                                    <div className="font-medium text-gray-600">Tanggal:</div>
                                     <div className="text-gray-800">{archiveHdr.archiveDate}</div>
 
                                     <div className="font-medium text-gray-600">Sifat:</div>
@@ -97,6 +105,22 @@ export default function PopupArchiveDetail({
 
                                     <div className="font-medium text-gray-600">Jenis:</div>
                                     <div className="text-gray-800">{archiveHdr.archiveTypeName}</div>
+
+                                    <div className="font-medium text-gray-600">Hak Akses:</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {archiveHdr.archiveRoleAccess && archiveHdr.archiveRoleAccess.length > 0 ? (
+                                                archiveHdr.archiveRoleAccess.map((r) => (
+                                                    <span
+                                                        key={r.id}
+                                                        className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-xs font-medium"
+                                                    >
+                                                        {r.roleName}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-gray-400 text-sm">-</span>
+                                            )}
+                                        </div>
                                 </div>
                             </div>
 

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
 
 export default function MasterPengguna() {
+    const [sessionData, setSessionData] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState<any>(null);
@@ -112,7 +113,8 @@ export default function MasterPengguna() {
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
 
-        const userData = {
+        const requestData = {
+            id: editData?.id ? editData.id : 0,
             userId: formData.get("userId"),
             passwordHash: formData.get("passwordHash"),
             fullName: formData.get("fullName"),
@@ -121,17 +123,18 @@ export default function MasterPengguna() {
                 : null,
             roleId: selectedRole?.value
                 ? Number(selectedRole.value)
-                : null
+                : null,
+            submittedBy: sessionData.userId
         };
 
         try {
             if (isEditing && editData) {
-                await axios.put(`${USERS_API_URL}${editData.id}`, userData, {
+                await axios.put(USERS_API_URL, requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil diperbarui");
             } else {
-                await axios.post(USERS_API_URL, userData, {
+                await axios.post(USERS_API_URL, requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil ditambahkan");
@@ -148,12 +151,12 @@ export default function MasterPengguna() {
         }
     };
 
-    const handleEdit = (user: any) => {
-        setEditData(user);
+    const handleEdit = (data: any) => {
+        setEditData(data);
 
         const dept = {
-            value: user.department.id,
-            label: user.department.departmentName,
+            value: data.department.id,
+            label: data.department.departmentName,
         };
 
         setSelectedDepartment(dept);
@@ -161,7 +164,7 @@ export default function MasterPengguna() {
         setShowPopup(true);
     };
 
-    const handleDelete = async (user: any) => {
+    const handleDelete = async (data: any) => {
         Swal.fire({
             title: `Hapus data?`,
             text: "Tindakan ini tidak dapat dibatalkan!",
@@ -172,9 +175,14 @@ export default function MasterPengguna() {
             confirmButtonText: "Hapus",
             cancelButtonText: "Batal",
         }).then(async (result) => {
+            const requestData = {
+                id: data.id,
+                submittedBy: sessionData.userId
+            };
+
             if (result.isConfirmed) {
                 try {
-                    await axios.patch(`${USERS_API_URL}${user.id}`, { status: "N" });
+                    await axios.patch(USERS_API_URL, requestData);
                     showToast("success", "Data telah dihapus");
                     await getAllUsers();
                 } catch (error) {
@@ -186,6 +194,11 @@ export default function MasterPengguna() {
     };
 
     useEffect(() => {
+        const storedSessionData = localStorage.getItem("sessionData");
+        if (storedSessionData) {
+            setSessionData(JSON.parse(storedSessionData));
+        }
+
         getAllUsers();
         getAllDepartment();
 
