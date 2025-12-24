@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   frontend:
+    pod: arsip-pod
     image: arsip-web:latest
     build:
       context: .
