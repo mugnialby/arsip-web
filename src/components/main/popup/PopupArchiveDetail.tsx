@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiUrl } from "@/app/lib/api";
 
 interface PopupArchiveDetail {
     archiveHdr: {
@@ -29,15 +30,13 @@ export default function PopupArchiveDetail({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const ARCHIVE_URL = "http://192.168.50.52:8080/api/archives/";
-
     useEffect(() => {
         if (!isOpen) return;
 
         setLoading(true);
         setError(null);
 
-        fetch(`${ARCHIVE_URL}${archiveHdr.archiveId}/pdf`, {
+        fetch(`${apiUrl("archives/")}${archiveHdr.archiveId}/pdf`, {
             method: "GET",
             headers: { Accept: "application/pdf" }
         })

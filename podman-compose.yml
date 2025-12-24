@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  frontend:
+    image: arsip-web:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arsip-web
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
