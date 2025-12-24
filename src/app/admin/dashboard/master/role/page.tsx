@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import { Plus, Pencil, Trash } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
+import { apiUrl } from "@/app/lib/api";
 
 export default function MasterPengguna() {
     const [sessionData, setSessionData] = useState(null);
@@ -20,12 +21,9 @@ export default function MasterPengguna() {
     const [departments, setDepartments] = useState<any[]>([]);
     const [selectedDepartment, setSelectedDepartment] = useState<any>(null);
 
-    const ROLES_API_URL = "http://192.168.50.52:8080/api/master/roles/";
-    const DEPARTMENTS_API_URL = "http://192.168.50.52:8080/api/master/departments/";
-
     const getAllRoles = async () => {
         try {
-            const response = await axios.get(ROLES_API_URL);
+            const response = await axios.get(apiUrl("master/roles/"));
             setRoles(response.data.data || []);
         } catch (error) {
             console.error("Error fetching roles:", error);
@@ -34,7 +32,7 @@ export default function MasterPengguna() {
 
     const getAllDepartment = async () => {
         try {
-            const response = await axios.get(DEPARTMENTS_API_URL);
+            const response = await axios.get(apiUrl("master/departments/"));
             setDepartments(response.data.data);
         } catch (error) {
             console.error("Error fetching departments:", error);
@@ -79,12 +77,12 @@ export default function MasterPengguna() {
 
         try {
             if (isEditing && editData) {
-                await axios.put(ROLES_API_URL, requestData, {
+                await axios.put(apiUrl("master/roles/"), requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil diperbarui");
             } else {
-                await axios.post(ROLES_API_URL, requestData, {
+                await axios.post(apiUrl("master/roles/"), requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil ditambahkan");
@@ -132,7 +130,7 @@ export default function MasterPengguna() {
 
             if (result.isConfirmed) {
                 try {
-                    await axios.patch(ROLES_API_URL, requestData);
+                    await axios.patch(apiUrl("master/roles/"), requestData);
                     showToast("success", "Data telah dihapus");
                     await getAllRoles();
                 } catch (error) {

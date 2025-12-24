@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Lock, User } from "lucide-react";
 import axios from "axios";
+import { apiUrl } from "../lib/api";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -14,8 +15,6 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [shake, setShake] = useState(false);
     
-    const API_URL = "http://192.168.50.52:8080/api/auth/authenticate";
-
     useEffect(() => {
         document.getElementById("userid")?.focus();
     }, []);
@@ -28,6 +27,8 @@ export default function LoginPage() {
             triggerShake();
             return;
         }
+
+        console.log(apiUrl("auth/authenticate"))
     
         setLoading(true);
     
@@ -37,7 +38,7 @@ export default function LoginPage() {
         };
     
         try {
-            const response = await axios.post(API_URL, loginRequest, {
+            const response = await axios.post(apiUrl("auth/authenticate"), loginRequest, {
                 headers: { "Content-Type": "application/json" },
             });
     
@@ -54,7 +55,6 @@ export default function LoginPage() {
         }
     };
     
-
     const triggerShake = () => {
         setShake(true);
         setTimeout(() => setShake(false), 400);

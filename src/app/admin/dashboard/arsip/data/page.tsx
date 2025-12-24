@@ -9,6 +9,7 @@ import Select from "react-select";
 import ArchiveDatePicker from "@/components/layout/Datepicker";
 import { UploadDropzone } from "@/components/layout/UploadDropzone";
 import PopupArchiveDetail from "@/components/main/popup/PopupArchiveDetail";
+import { apiUrl } from "@/app/lib/api";
 
 export default function ArsipData() {
     const [sessionData, setSessionData] = useState(null);
@@ -35,11 +36,6 @@ export default function ArsipData() {
     const [recordsPerPage, setRecordsPerPage] = useState(10);
 
     const [archiveDate, setArchiveDate] = useState<Date | null>(null);
-
-    const ARCHIVE_URL = "http://192.168.50.52:8080/api/archives/";
-    const ARCHIVE_CHARACTERISTIC_URL = "http://192.168.50.52:8080/api/master/archiveCharacteristics/";
-    const ARCHIVE_TYPE_URL = "http://192.168.50.52:8080/api/master/archiveTypes/";
-    const ROLES_URL = "http://192.168.50.52:8080/api/master/roles";
 
     interface RoleAccessState {
         id: number;
@@ -70,7 +66,7 @@ export default function ArsipData() {
 
     const getAllArchives = async () => {
         try {
-            const response = await axios.get(ARCHIVE_URL);
+            const response = await axios.get(apiUrl("archives/"));
             setArchives(response.data.data);
         } catch (error) {
             console.error("Error fetching archives:", error);
@@ -84,7 +80,7 @@ export default function ArsipData() {
         }
 
         try {
-            const response = await axios.post(`${ARCHIVE_URL}getByData`, requestData, {
+            const response = await axios.post(apiUrl("archives/getByData"), requestData, {
                 headers: { "Content-Type": "application/json" },
             });
             setArchives(response.data.data);
@@ -95,7 +91,7 @@ export default function ArsipData() {
 
     const getAllArchiveCharacteristics = async () => {
         try {
-            const response = await axios.get(ARCHIVE_CHARACTERISTIC_URL);
+            const response = await axios.get(apiUrl("master/archiveCharacteristics/"));
             setArchiveCharacteristics(response.data.data);
         } catch (error) {
             console.error("Error fetching archive characteristics:", error);
@@ -104,7 +100,7 @@ export default function ArsipData() {
 
     const getAllArchiveTypes = async () => {
         try {
-            const response = await axios.get(ARCHIVE_TYPE_URL);
+            const response = await axios.get(apiUrl("master/archiveTypes/"));
             setArchiveTypes(response.data.data);
         } catch (error) {
             console.error("Error fetching archive types:", error);
@@ -113,7 +109,7 @@ export default function ArsipData() {
 
     const getArchiveById = async (archiveId: number) => {
         try {
-            const response = await axios.get(`${ARCHIVE_URL}${archiveId}`);
+            const response = await axios.get(`${apiUrl("archives/")}${archiveId}`);
             return response.data;
         } catch (error) {
             console.error("Error fetching archive:", error);
@@ -123,7 +119,7 @@ export default function ArsipData() {
 
     const getRoleByDepartmentId = async (departmentId: number) => {
         try {
-            const response = await axios.get(`${ROLES_URL}/findByQuery/department/${departmentId}`);
+            const response = await axios.get(`${apiUrl("master/roles/findByQuery/department/")}${departmentId}`);
             setRoleAccessOptions(
                 response.data.map((r) => ({
                     value: r.id,
@@ -229,12 +225,12 @@ export default function ArsipData() {
 
         try {
             if (isEditing && editData) {
-                await axios.put(ARCHIVE_URL, requestData, {
+                await axios.put(apiUrl("archives/"), requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil diperbarui");
             } else {
-                await axios.post(ARCHIVE_URL, requestData, {
+                await axios.post(apiUrl("archives/"), requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil ditambahkan");
@@ -318,7 +314,7 @@ export default function ArsipData() {
 
             if (result.isConfirmed) {
                 try {
-                    await axios.patch(ARCHIVE_URL, requestData);
+                    await axios.patch(apiUrl("archives/"), requestData);
                     showToast("success", "Data telah dihapus");
 
                     if (sessionData.roleId == 1) {

@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import { Plus, Pencil, Trash } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
+import { apiUrl } from "@/app/lib/api";
 
 export default function MasterPengguna() {
     const [sessionData, setSessionData] = useState(null);
@@ -24,13 +25,9 @@ export default function MasterPengguna() {
     const [roleOptions, setRoleOptions] = useState<any[]>([]);
     const [selectedRole, setSelectedRole] = useState<any>(null);
 
-    const USERS_API_URL = "http://192.168.50.52:8080/api/master/users/";
-    const DEPARTMENTS_API_URL = "http://192.168.50.52:8080/api/master/departments/";
-    const ROLES_API_URL = "http://192.168.50.52:8080/api/master/roles/";
-
     const getAllUsers = async () => {
         try {
-            const response = await axios.get(USERS_API_URL);
+            const response = await axios.get(apiUrl("master/users/"));
             setUsers(response.data.data || []);
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -39,7 +36,7 @@ export default function MasterPengguna() {
 
     const getAllDepartment = async () => {
         try {
-            const response = await axios.get(DEPARTMENTS_API_URL);
+            const response = await axios.get(apiUrl("master/departments/"));
             setDepartments(response.data.data);
         } catch (error) {
             console.error("Error fetching Department:", error);
@@ -51,7 +48,7 @@ export default function MasterPengguna() {
 
         try {
             const response = await axios.get(
-                `${ROLES_API_URL}findByQuery/department/${departmentId}`
+                `${apiUrl("master/roles/")}findByQuery/department/${departmentId}`
             );
 
             const roles = response.data;
@@ -129,12 +126,12 @@ export default function MasterPengguna() {
 
         try {
             if (isEditing && editData) {
-                await axios.put(USERS_API_URL, requestData, {
+                await axios.put(apiUrl("master/users/"), requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil diperbarui");
             } else {
-                await axios.post(USERS_API_URL, requestData, {
+                await axios.post(apiUrl("master/users/"), requestData, {
                     headers: { "Content-Type": "application/json" },
                 });
                 showToast("success", "Data berhasil ditambahkan");
@@ -182,7 +179,7 @@ export default function MasterPengguna() {
 
             if (result.isConfirmed) {
                 try {
-                    await axios.patch(USERS_API_URL, requestData);
+                    await axios.patch(apiUrl("master/users/"), requestData);
                     showToast("success", "Data telah dihapus");
                     await getAllUsers();
                 } catch (error) {
