@@ -110,7 +110,7 @@ export default function ArsipData() {
     const getArchiveById = async (archiveId: number) => {
         try {
             const response = await axios.get(`${apiUrl("archives/")}${archiveId}`);
-            return response.data;
+            return response.data.data;
         } catch (error) {
             console.error("Error fetching archive:", error);
             return null;
@@ -121,7 +121,7 @@ export default function ArsipData() {
         try {
             const response = await axios.get(`${apiUrl("master/roles/findByQuery/department/")}${departmentId}`);
             setRoleAccessOptions(
-                response.data.map((r) => ({
+                response.data.data.map((r) => ({
                     value: r.id,
                     label: r.roleName,
                 }))

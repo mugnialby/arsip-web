@@ -125,7 +125,7 @@ export default function PopupArchiveDetail({
 
                             {/* PDF Card */}
                             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                                <h3 className="text-lg font-medium mb-3">Dokumen</h3>
+                                <h3 className="text-lg font-medium mb-3 text-black">Dokumen</h3>
 
                                 {loading && (
                                     <div className="flex justify-center py-10">

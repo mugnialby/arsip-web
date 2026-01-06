@@ -27,8 +27,6 @@ export default function LoginPage() {
             triggerShake();
             return;
         }
-
-        console.log(apiUrl("auth/authenticate"))
     
         setLoading(true);
     
@@ -44,9 +42,10 @@ export default function LoginPage() {
     
             if (response.status !== 200) throw new Error("Login gagal");
     
-            localStorage.setItem("sessionData", JSON.stringify(response.data));
+            localStorage.setItem("sessionData", JSON.stringify(response.data.data));
     
             setErrorMsg("");
+
             router.push("/admin/dashboard");
         } catch (err: any) {
             setErrorMsg(err.message || "Login gagal");

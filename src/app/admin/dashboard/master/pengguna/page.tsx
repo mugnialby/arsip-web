@@ -51,7 +51,7 @@ export default function MasterPengguna() {
                 `${apiUrl("master/roles/")}findByQuery/department/${departmentId}`
             );
 
-            const roles = response.data;
+            const roles = response.data.data;
 
             if (!Array.isArray(roles) || roles.length === 0) {
                 setRoleOptions([]);
@@ -188,6 +188,11 @@ export default function MasterPengguna() {
                 }
             }
         });
+    };
+
+    const onChangeSelectedDepartment = (data: any) => {
+        setSelectedDepartment(data)
+        setSelectedRole(null)
     };
 
     useEffect(() => {
@@ -430,7 +435,7 @@ export default function MasterPengguna() {
                                     <Select
                                         options={departmentOptions}
                                         value={selectedDepartment}
-                                        onChange={setSelectedDepartment}
+                                        onChange={(data) => onChangeSelectedDepartment(data)}
                                         placeholder="---Pilih---"
                                         className="text-black"
                                         isSearchable
